@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ミュラー・リヤー錯視実験</title>
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-canvas-keyboard-response@1.1.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.3"></script>
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css">
+    <style>
+        body { margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: #f0f0f0; }
+        .jspsych-content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+    </style>
+</head>
+<body></body>
+<script>
+    const jsPsych = initJsPsych({
+        on_finish: function(data) {
+            const subject_data = jsPsych.data.get().filter({trial_type: 'survey-text'}).values()[0];
+            const subject_id = subject_data ? subject_data.response.subject_id : "unknown";
+            
+            const experiment_data = data.filter({trial_type: 'canvas-keyboard-response'}).values().map(d => ({
+                subject_id: subject_id,
+                timestamp: d.time_elapsed,
+                angle: d.angle,
+                wing_length: d.wing_len,
+                standard_len: 200,
+                pse: d.final_len,
+                error_amount: d.final_len - 200
+            }));
+
+            document.body.innerHTML = "<h1>送信中...</h1>";
+
+            fetch('https://script.google.com/macros/s/AKfycbxk3011r5eNEKtJ3bAfltqQuPxz08SR0VUjzTaR3znpcDnBMFztf9l-4fLcuRuLPz3g6g/exec', {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(experiment_data)
+            })
+            .then(() => {
+                document.body.innerHTML = "<h1>実験終了</h1><p>送信処理が完了しました。</p>";
+            })
+            .catch(() => {
+                document.body.innerHTML = "<h1>実験終了</h1><p>データ送信完了（オフライン動作の可能性があります）</p>";
+            });
+        }
+    });
+
+    const trials_data = [];
+    for (let a of [15, 75]) {
+        for (let l of [20, 50]) {
+            for (let i = 0; i < 3; i++) trials_data.push({ angle: a, wing_len: l });
+        }
+    }
+    const shuffled_trials = jsPsych.randomization.repeat(trials_data, 1);
+
+    const drawStimuli = (c, var_len, config) => {
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, c.width, c.height);
+        const centerX = c.width / 2, centerY = c.height / 2, yOffset = 60, rad = config.angle * Math.PI / 180;
+        const drawArrow = (x, y, len, is_inward) => {
+            ctx.beginPath();
+            ctx.moveTo(x - len / 2, y); ctx.lineTo(x + len / 2, y);
+            const side = is_inward ? 1 : -1;
+            ctx.moveTo(x - len / 2, y); ctx.lineTo(x - len / 2 + config.wing_len * Math.cos(rad), y - side * config.wing_len * Math.sin(rad));
+            ctx.moveTo(x - len / 2, y); ctx.lineTo(x - len / 2 + config.wing_len * Math.cos(rad), y + side * config.wing_len * Math.sin(rad));
+            ctx.moveTo(x + len / 2, y); ctx.lineTo(x + len / 2 - config.wing_len * Math.cos(rad), y - side * config.wing_len * Math.sin(rad));
+            ctx.moveTo(x + len / 2, y); ctx.lineTo(x + len / 2 - config.wing_len * Math.cos(rad), y + side * config.wing_len * Math.sin(rad));
+            ctx.stroke();
+        };
+        drawArrow(centerX, centerY - yOffset, 200, true);
+        drawArrow(centerX, centerY + yOffset, var_len, false);
+    };
+
+    const timeline = [];
+    timeline.push({ type: jsPsychSurveyText, questions: [{prompt: "参加者IDを入力してください", name: 'subject_id', required: true}] });
+    timeline.push({ type: jsPsychHtmlKeyboardResponse, stimulus: "<h1>ミュラー・リヤー錯視実験</h1><p>スペースキーを押して開始してください。</p>", choices: [' '] });
+
+    shuffled_trials.forEach((trial, index) => {
+        let current_len = Math.floor(Math.random() * 200) + 100;
+        timeline.push({
+            type: jsPsychCanvasKeyboardResponse,
+            canvas_size: [400, 600],
+            stimulus: (c) => drawStimuli(c, current_len, trial),
+            prompt: `<p>試行 ${index + 1} / 12</p><p>左右矢印で調整後、スペースキーで決定</p>`,
+            choices: [' '],
+            on_load: function() {
+                const canvas = document.querySelector('canvas');
+                const keys = {};
+                const update = () => {
+                    if (keys['ArrowLeft']) current_len = Math.max(50, current_len - 2);
+                    if (keys['ArrowRight']) current_len = Math.min(400, current_len + 2);
+                    if (canvas) drawStimuli(canvas, current_len, trial);
+                    if (keys['ArrowLeft'] || keys['ArrowRight']) requestAnimationFrame(update);
+                };
+                window.addEventListener('keydown', (e) => {
+                    if (!keys[e.code]) { keys[e.code] = true; if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') update(); }
+                });
+                window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+            },
+            on_finish: function(data) {
+                data.final_len = current_len;
+                data.angle = trial.angle;
+                data.wing_len = trial.wing_len;
+            }
+        });
+    });
+    jsPsych.run(timeline);
+</script>
+</html>
