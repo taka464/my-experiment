@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心理学実験室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f3f4f6; /* 薄いグレー */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen m-0 font-sans">
+
+    <!-- メインコンテンツ -->
+    <div class="text-center p-8 bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-8 leading-tight">
+            心理学実験室へようこそ
+        </h1>
+        
+        <div class="space-y-6">
+            <button id="start-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg active:scale-95 text-xl">
+                実験を開始する
+            </button>
+
+            <!-- メッセージ表示エリア -->
+            <div id="message-container" class="h-12 flex items-center justify-center">
+                <p id="display-text" class="text-3xl font-bold text-red-600 opacity-0 transition-opacity duration-500"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('start-button');
+        const displayText = document.getElementById('display-text');
+
+        /**
+         * 画面内にテキストを表示する関数
+         */
+        function showInPageMessage(message) {
+            displayText.innerText = message;
+            // 不透明度を1にして表示（フェードイン効果）
+            displayText.style.opacity = '1';
+        }
+
+        // ボタンクリック時のイベントリスナー
+        startButton.addEventListener('click', () => {
+            // 赤い文字で "Hello World!" を表示
+            showInPageMessage('Hello World!');
+        });
+    </script>
+</body>
+</html>
