@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>視覚のテスト</title>
+    <script src="https://unpkg.com/jspsych@7.3.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-canvas-slider-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://unpkg.com/jspsych@7.3.3/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <style>
+        body { margin: 0; background-color: #ffffff; font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; color: #2c3e50; }
+        .jspsych-content-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        canvas { border: 1px solid #dcdde1; background-color: white; margin: 30px 0; display: block; max-width: 100%; border-radius: 8px; }
+        .instruction-box { text-align: left; max-width: 500px; line-height: 1.6; font-size: 1.1rem; color: #2980b9; }
+        .result-container { max-width: 600px; margin: 0 auto; text-align: left; color: #2c3e50; }
+        .chart-box { width: 100%; max-width: 500px; margin: 20px auto; }
+        .jspsych-btn { padding: 12px 40px; font-size: 1rem; border-radius: 8px; background-color: #2980b9; color: white; border: none; cursor: pointer; }
+        h2 { color: #2980b9; }
+    </style>
+</head>
+<body>
+<script>
+    const jsPsych = initJsPsych();
+
+    const drawStimuli = (c, comparisonLength, angle, wingSize) => {
+        if (!c) return;
+        const ctx = c.getContext('2d');
+        const centerX = c.width / 2;
+        const centerY1 = c.height / 3;
+        const centerY2 = (c.height / 3) * 2;
+        const rad = angle * Math.PI / 180;
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#2980b9';
+        const drawWings = (x, y, length, inward) => {
+            ctx.beginPath(); ctx.moveTo(x - length / 2, y); ctx.lineTo(x + length / 2, y); ctx.stroke();
+            const dir = inward ? 1 : -1;
+            ctx.beginPath();
+            ctx.moveTo(x - length / 2, y); ctx.lineTo(x - length / 2 + wingSize * Math.cos(rad), y - dir * wingSize * Math.sin(rad));
+            ctx.moveTo(x - length / 2, y); ctx.lineTo(x - length / 2 + wingSize * Math.cos(rad), y + dir * wingSize * Math.sin(rad));
+            ctx.moveTo(x + length / 2, y); ctx.lineTo(x + length / 2 - wingSize * Math.cos(rad), y - dir * wingSize * Math.sin(rad));
+            ctx.moveTo(x + length / 2, y); ctx.lineTo(x + length / 2 - wingSize * Math.cos(rad), y + dir * wingSize * Math.sin(rad));
+            ctx.stroke();
+        };
+        drawWings(centerX, centerY1, 200, true);
+        drawWings(centerX, centerY2, comparisonLength, false);
+    };
+
+    const trials = [];
+    const conditions = [{angle: 15, wing: 20}, {angle: 15, wing: 50}, {angle: 75, wing: 20}, {angle: 75, wing: 50}];
+    let design = [];
+    for(let i=0; i<3; i++) design = design.concat(conditions);
+    design = jsPsych.randomization.shuffle(design);
+
+    design.forEach((cond, idx) => {
+        const initialVal = Math.floor(Math.random() * 250) + 50;
+        trials.push({
+            type: jsPsychCanvasSliderResponse,
+            stimulus: () => "",
+            prompt: `<div style="color:#2980b9; font-size:0.9rem;">現在 ${idx + 1} 回目 / 全部で 12 回</div>`,
+            canvas_size: [400, 600],
+            slider_min: 50, slider_max: 350, slider_start: initialVal,
+            button_label: "決定",
+            on_load: function() {
+                const slider = document.querySelector('input[type="range"]');
+                const canvas = document.querySelector('canvas');
+                drawStimuli(canvas, initialVal, cond.angle, cond.wing);
+                if (slider) {
+                    slider.addEventListener('input', (e) => drawStimuli(canvas, parseInt(e.target.value), cond.angle, cond.wing));
+                }
+            },
+            on_finish: function(data) {
+                data.angle = cond.angle;
+                data.wing_length = cond.wing;
+                data.error_amount = data.response - 200;
+            }
+        });
+    });
+
+    const enter_id = { type: jsPsychSurveyText, questions: [{prompt: "参加者ID", name: 'participant_id', required: true}], button_label: "次へ" };
+
+    const instructions = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `<div class="instruction-box"><p>『上の横線』と『下の横線』がピッタリ同じ長さに見えるところで決定ボタンを押してください。</p></div>`,
+        choices: ['実験開始']
+    };
+
+    const result_display = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: () => {
+            return `
+                <div class="result-container">
+                    <h2>テストの結果発表！</h2>
+                    <div class="chart-box"><canvas id="resultChart"></canvas></div>
+                </div>`;
+        },
+        on_load: function() {
+            const data = jsPsych.data.get().filter({trial_type: 'canvas-slider-response'}).values();
+            const results = conditions.map(cond => {
+                const subset = data.filter(d => d.angle === cond.angle && d.wing_length === cond.wing);
+                return subset.reduce((sum, d) => sum + d.error_amount, 0) / subset.length;
+            });
+            new Chart(document.getElementById('resultChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['角小/羽短', '角小/羽長', '角大/羽短', '角大/羽長'],
+                    datasets: [{ label: '長さのズレ', data: results, backgroundColor: '#2980b9' }]
+                }
+            });
+        },
+        choices: ['終了']
+    };
+
+    jsPsych.run([enter_id, instructions, ...trials, result_display]);
+</script>
+</body>
+</html>
