@@ -15,12 +15,14 @@
         .chart-container { display: flex; justify-content: space-around; align-items: flex-end; height: 200px; border-bottom: 2px solid #333; margin: 20px 0; padding: 0 40px; }
         .bar { width: 60px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; color: white; font-weight: bold; }
         .bar-label { margin-top: 10px; color: #333; font-weight: normal; }
-        .explanation { background: #eef7ff; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85rem; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        th { background-color: #f4f4f4; }
     </style>
 </head>
 <body></body>
 <script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycby1fccn4e9O9dkIH686ivSMoHJ_9JEOcg4ILAnGBAblKtT436snsX6CGAP_LWLhNIHO_w/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycby7PMRlS5BtYQMxwYccfbh-Pr4Lrd-dnRglIuUVk5Zgjsy21SUr8-uLmJaq-HhJP8YtgQ/exec';
 
     const jsPsych = initJsPsych({
         on_finish: function() {
@@ -33,6 +35,7 @@
                     condition: d.condition,
                     trial: d.trial_index,
                     stimulus: d.stimulus,
+                    isTarget: d.isTarget,
                     correct: d.correct,
                     rt: d.rt
                 }));
@@ -43,21 +46,29 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             }).finally(() => {
-                // 送信完了後、メッセージとフィードバック画面を表示
                 const stats = { '1-back': { acc: [], rt: [] }, '2-back': { acc: [], rt: [] } };
                 data.forEach(d => { stats[d.condition].acc.push(d.correct); stats[d.condition].rt.push(d.rt); });
                 const calc = (c) => ({ acc: (stats[c].acc.filter(v=>v).length/20)*100, rt: stats[c].rt.reduce((a,b)=>a+b,0)/20 });
                 const s1 = calc('1-back'), s2 = calc('2-back');
 
+                let tableHtml = "<table><tr><th>条件</th><th>試行</th><th>文字</th><th>ターゲット</th><th>正誤</th><th>RT(ms)</th></tr>";
+                data.forEach(d => {
+                    tableHtml += `<tr><td>${d.condition}</td><td>${d.trial}</td><td>${d.stimulus}</td><td>${d.isTarget ? '○' : '×'}</td><td>${d.correct ? '○' : '×'}</td><td>${Math.round(d.rt)}</td></tr>`;
+                });
+                tableHtml += "</table>";
+
                 display.innerHTML = `<h1>実験終了。ご協力ありがとうございました。</h1>
+                <h3>正解率 (%)</h3>
                 <div class="chart-container">
                     <div class="bar" style="height:${s1.acc*1.5}px; background:#4ade80;">${Math.round(s1.acc)}%<div class="bar-label">1-Back</div></div>
                     <div class="bar" style="height:${s2.acc*1.5}px; background:#4ade80;">${Math.round(s2.acc)}%<div class="bar-label">2-Back</div></div>
                 </div>
+                <h3>反応速度 (ms)</h3>
                 <div class="chart-container">
                     <div class="bar" style="height:${Math.min(s1.rt/5, 150)}px; background:#60a5fa;">${Math.round(s1.rt)}<div class="bar-label">1-Back</div></div>
                     <div class="bar" style="height:${Math.min(s2.rt/5, 150)}px; background:#60a5fa;">${Math.round(s2.rt)}<div class="bar-label">2-Back</div></div>
-                </div>`;
+                </div>
+                ${tableHtml}`;
             });
         }
     });
