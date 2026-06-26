@@ -6,15 +6,14 @@
     <title>心理学実験ポータルサイト</title>
     <style>
         :root {
-            /* 爽やかなライトブルーの背景 */
             --primary-bg: #f0f7ff;
             --card-bg: #ffffff;
-            /* 信頼感のある明るいブルーをアクセントカラーに */
             --accent-color: #4a90e2; 
             --text-color: #2c3e50;
             --sub-text: #546e7a;
             --shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
             --hover-shadow: 0 12px 20px rgba(74, 144, 226, 0.2);
+            --secondary-color: #6c757d;
         }
 
         body {
@@ -88,21 +87,46 @@
             margin-bottom: 2rem;
         }
 
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         .btn {
-            display: inline-block;
+            display: block;
             text-align: center;
-            background-color: var(--accent-color);
-            color: white;
-            padding: 1rem 1.5rem;
+            padding: 0.8rem 1rem;
             border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            font-size: 0.9rem;
         }
 
-        .btn:hover {
-            background-color: #357abd;
+        /* メインアクション用 */
+        .btn-main {
+            background-color: var(--accent-color);
+            color: white;
         }
+        .btn-main:hover { background-color: #357abd; }
+
+        /* プレレジ関連のサブボタン */
+        .btn-outline {
+            border: 2px solid var(--accent-color);
+            color: var(--accent-color);
+            background: transparent;
+        }
+        .btn-outline:hover { background-color: rgba(74, 144, 226, 0.1); }
+
+        /* 履歴関連の控えめなボタン */
+        .btn-ghost {
+            color: var(--secondary-color);
+            border: 1px solid #ced4da;
+            background: transparent;
+            font-size: 0.8rem;
+        }
+        .btn-ghost:hover { border-color: var(--secondary-color); color: var(--secondary-color); }
 
         @media (max-width: 600px) {
             h1 { font-size: 1.7rem; }
@@ -123,21 +147,13 @@
 
         <main class="grid">
             <article class="card">
-                <h2>実験0：はじめてのWebページ</h2>
-                <p>第2回で作成した記念すべき「Hello World」のページです。</p>
-                <a href="hello_world.html" class="btn">Hello Worldを見る</a>
-            </article>
-
-            <article class="card">
-                <h2>実験1：ストループ課題</h2>
-                <p>「文字の意味」と「文字の色」の干渉を調べる、簡単なキーボード入力のテストです。（所要時間：約3分）</p>
-                <a href="stroop.html" class="btn">実験1に参加する</a>
-            </article>
-
-            <article class="card">
-                <h2>実験2：ミュラー・リヤー錯視</h2>
-                <p>図形の長さが違って見える錯覚を測る、スライダーを使った視覚のテストです。（所要時間：約2分）</p>
-                <a href="muller_lyer_final.html" class="btn">実験2に参加する</a>
+                <h2>実験：ワーキングメモリ課題における記憶負荷（N-Back）が反応時間および正答率に及ぼす影響</h2>
+                <p>N-Back課題を用いて、ワーキングメモリ負荷が認知パフォーマンスに与える影響を測定します。</p>
+                <div class="btn-group">
+                    <a href="n-back.html" class="btn btn-main">実験に参加する</a>
+                    <a href="https://github.com/taka464/my-experiment/blob/main/preregistration.md" class="btn btn-outline">プレレジを確認する</a>
+                    <a href="https://github.com/taka464/my-experiment/commits/main/preregistration.md" class="btn btn-ghost">変更履歴（証拠）を確認する</a>
+                </div>
             </article>
         </main>
     </div>
